@@ -4,7 +4,6 @@ et al. - http://xiaohulugo.github.io/papers/Vanishing_Point_Detection_WACV2017.p
 
 Author: Ray Phan (https://github.com/rayryeng)
 """
-from pudb import set_trace; set_trace(paused=False)
 from platform import node
 import cv2
 
