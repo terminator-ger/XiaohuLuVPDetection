@@ -20,6 +20,6 @@ if __name__ == '__main__':
                         principal_point=principal_point, 
                         focal_length=focal_length, 
                         seed=seed,
-                        line_search_alg=LS_ALG.LSD_WITH_MERGE)
+                        line_search_alg=LS_ALG.LSD)
     #vps = vpd.find_vps(img)
     cProfile.run('run_(vpd, img)')

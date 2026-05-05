@@ -8,7 +8,11 @@ Author: Ray Phan (https://github.com/rayryeng)
 import cv2
 
 import math
-import lsd
+try:
+    import lsd
+    LSD_USE_CV2 = False
+except ImportError:
+    LSD_USE_CV2 = True
 import numpy as np
 import logging
 
@@ -40,11 +44,11 @@ class VPDetection(object):
     """
 
     def __init__(self,
-                 length_thresh=200,
+                 length_thresh=50,
                  principal_point=None,
                  focal_length=1500,
                  seed=None,
-                 line_search_alg=LS_ALG.LSD_WITH_MERGE):
+                 line_search_alg=LS_ALG.LSD):
         self._length_thresh = length_thresh
         self._principal_point = principal_point
         self._focal_length = focal_length
@@ -218,13 +222,20 @@ class VPDetection(object):
         # Convert to grayscale if required
         if len(img.shape) == 3:
             img_copy = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if len(img.shape) == 4:
+            img_copy = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
         else:
             img_copy = img
 
         # Create LSD detector with default parameters
         h,w = img_copy.shape
         if self.ls_alg == LS_ALG.LSD:
-            lines = lsd.lsd(img_copy.reshape(-1),w,h)
+            if LSD_USE_CV2:
+                lines = cv2.createLineSegmentDetector().detect(img_copy)[0]
+                lines = lines.reshape(-1,4) if lines is not None else []
+            else:
+                lines = lsd.lsd(img_copy.reshape(-1),w,h)
+                
             if len(lines) > 0:
                 lines = np.array([x[:4] for x in lines],dtype=int)
                 lines = self.__mask_length(lines)
@@ -658,9 +669,14 @@ class VPDetection(object):
         status = np.ones(self.__lines.shape[0], dtype=bool)
         status[all_clusters] = False
         ind = np.where(status)[0]
-        for (x1, y1, x2, y2) in self.__lines[ind]:
-            cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 0, 0), 2,
+        for idx, (x1, y1, x2, y2) in enumerate(self.__lines):
+            if idx in ind:
+                cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 0, 0), 2,
                      cv2.LINE_AA)
+            else:
+                cv2.line(img, (int(x1), int(y1)), (int(x2), int(y2)), (128, 128, 128), 2,
+                     cv2.LINE_AA)
+            
 
         # For each cluster of lines, draw them in their right colour
         for i in range(3):
